@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessible Game Engine</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="ui-layer">
+      <div id="menu">
+        <h1>Accessible Game Engine</h1>
+        <div id="game-select">
+          <button id="roblox-btn" class="game-btn">Roblox</button>
+          <button id="fortnite-btn" class="game-btn">Fortnite</button>
+          <button id="rocket-league-btn" class="game-btn">Rocket League</button>
+        </div>
+        <div id="accessibility-menu">
+          <h2>Accessibility Settings</h2>
+          <label><input type="checkbox" id="captions-toggle" /> Captions</label>
+          <label><input type="checkbox" id="descriptions-toggle" /> Audio Descriptions</label>
+          <label><input type="checkbox" id="screenreader-toggle" /> Screen Reader</label>
+          <label><input type="checkbox" id="highcontrast-toggle" /> High Contrast</label>
+          <label>
+            Font Size:
+            <select id="text-size">
+              <option value="small">Small</option>
+              <option value="normal" selected>Normal</option>
+              <option value="large">Large</option>
+              <option value="extra-large">Extra Large</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="dist/index.js"></script>
+</body>
+</html>
