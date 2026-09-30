@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accessible Game Arena</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(16, 20, 31, 0.9);
+      --panel-border: #5cc8ff;
+      --text: #f3f7ff;
+      --accent: #00d1ff;
+      --accent-2: #9d7bff;
+      --muted: #a9b6d3;
+      --good: #6ee7b7;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at top, #16213e 0%, var(--bg) 50%, #030712 100%);
+      color: var(--text); font-family: Arial, Helvetica, sans-serif;
+    }
+    body {
+      display: flex; justify-content: center; align-items: center; padding: 24px;
+    }
+    .app {
+      width: min(1100px, 96vw); background: rgba(11, 16, 32, 0.82);
+      border: 2px solid var(--panel-border); border-radius: 18px; box-shadow: 0 25px 60px rgba(0,0,0,0.45); overflow: hidden;
+    }
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    h1 { margin: 0; font-size: clamp(1.2rem,2vw,2rem); }
+    .status { color: var(--good); font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.8rem; }
+    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 620px; }
+    .sidebar { border-right: 1px solid rgba(255,255,255,0.08); padding: 18px 16px; background: rgba(255,255,255,0.02); }
+    .panel { background: var(--panel); border: 1px solid rgba(92,200,255,0.2); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+    .panel h2 { margin: 0 0 12px; font-size: 1rem; color: var(--accent); }
+    button { width: 100%; border: none; border-radius: 10px; padding: 12px 14px; margin: 8px 0; font-weight: 700; font-size: 0.95rem; color: white; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); cursor: pointer; }
+    button.secondary { background: linear-gradient(135deg, #2d4e5c 0%, #1f8cb4 100%); }
+    .toggles label { display: flex; align-items: center; gap:10px; margin:10px 0; }
+    .toggles input[type="checkbox"] { width:16px; height:16px; accent-color: var(--accent); }
+    .main { display:grid; grid-template-rows:1fr auto; padding:18px; gap:16px; }
+    .game-area { position:relative; border-radius:16px; overflow:hidden; border:2px solid rgba(255,255,255,0.08); background: linear-gradient(180deg,#1a2a4d 0%, #0d1630 100%); min-height:440px; }
+    canvas { display:block; width:100%; height:100%; min-height:440px; background: linear-gradient(180deg,#203863 0%, #0f1d2e 100%); }
+    .scene-info { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .caption-box, .audio-box { min-height:70px; background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px; }
+    .caption-box strong, .audio-box strong { display:block; margin-bottom:6px; color: var(--accent); font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase; }
+    .caption-text, .audio-text { margin:0; color:var(--text); line-height:1.45; font-size:0.98rem; }
+    @media (max-width:800px){ .layout{grid-template-columns:1fr;} .sidebar{border-right:none; border-bottom:1px solid rgba(255,255,255,0.08);} .scene-info{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Accessible game arena">
+    <div class="topbar">
+      <h1>Accessible Game Arena</h1>
+      <div class="status" id="status">Ready</div>
+    </div>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="panel">
+          <h2>Game Modes</h2>
+          <button data-mode="roblox">Roblox</button>
+          <button data-mode="fortnite" class="secondary">Fortnite</button>
+          <button data-mode="rocketleague" class="secondary">Rocket League</button>
+          <button data-mode="movie" class="secondary">Movie Scene</button>
+        </div>
+        <div class="panel toggles">
+          <h2>Accessibility</h2>
+          <label><input type="checkbox" id="captionsToggle" checked /> Captions</label>
+          <label><input type="checkbox" id="narrationToggle" checked /> Audio Description</label>
+          <label><input type="checkbox" id="highContrastToggle" /> High Contrast</label>
+          <label><input type="checkbox" id="reduceMotionToggle" /> Reduce Motion</label>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="game-area">
+          <canvas id="gameCanvas" width="960" height="440" aria-label="Game screen"></canvas>
+        </div>
+        <div class="scene-info">
+          <div class="caption-box">
+            <strong>Caption</strong>
+            <p class="caption-text" id="captionText">Welcome to the game arena. Pick a mode to begin.</p>
+          </div>
+          <div class="audio-box">
+            <strong>Audio Description</strong>
+            <p class="audio-text" id="audioText">A colorful game arena is ready for play.</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const captionTextEl = document.getElementById('captionText');
+    const audioTextEl = document.getElementById('audioText');
+    const settings = { captions: true, narration: true, highContrast: false, reduceMotion: false };
+    const modes = {
+      roblox: { label: 'Roblox', caption: 'Roblox mode active. Build, jump, and explore a bright sandbox world.', narration: 'A colorful sandbox world loads with a player avatar standing in front of blocks and a floating coin.' },
+      fortnite: { label: 'Fortnite', caption: 'Fortnite mode active. Battle across a map with walls, ramps, and action.', narration: 'Battle armor, a storm ring, and a player ready to build cover appear on the island.' },
+      rocketleague: { label: 'Rocket League', caption: 'Rocket League mode active. Boost your car and chase the ball into the goal.', narration: 'A rocket-powered car speeds across a glowing stadium field with the ball moving toward the goal.' },
+      movie: { label: 'Movie Scene', caption: 'Movie scene active. Captions and audio description are playing for the cinematic moment.', narration: 'A cinematic sky opens as lights glow around the arena while soft narration describes the scene.' }
+    };
+    let currentMode = 'roblox';
+    let time = 0; let lastFrame = 0; let orbX = 0; let orbY = 0;
+
+    function setStatus(text) { statusEl.textContent = text; }
+    function setCaption(text) { captionTextEl.textContent = text; captionTextEl.style.opacity = settings.captions ? '1' : '0.4'; }
+    function setAudio(text) { audioTextEl.textContent = text; if (settings.narration && 'speechSynthesis' in window) { window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.rate = 1; utter.pitch = 1; window.speechSynthesis.speak(utter); } }
+    function applyMode(modeName){ currentMode=modeName; const mode = modes[modeName]; setStatus(mode.label); setCaption(mode.caption); setAudio(mode.narration); }
+    document.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => applyMode(button.dataset.mode)));
+    document.getElementById('captionsToggle').addEventListener('change', (event) => { settings.captions = event.target.checked; if (settings.captions) setCaption(modes[currentMode].caption); else setCaption('Captions disabled.'); });
+    document.getElementById('narrationToggle').addEventListener('change', (event) => { settings.narration = event.target.checked; if (settings.narration) setAudio(modes[currentMode].narration); else setAudio('Audio description is off.'); });
+    document.getElementById('highContrastToggle').addEventListener('change', (event) => { settings.highContrast = event.target.checked; document.body.style.filter = settings.highContrast ? 'contrast(1.5) saturate(1.4)' : 'none'; setStatus(settings.highContrast ? 'High contrast enabled' : modes[currentMode].label); });
+    document.getElementById('reduceMotionToggle').addEventListener('change', (event) => { settings.reduceMotion = event.target.checked; setStatus(settings.reduceMotion ? 'Reduced motion enabled' : modes[currentMode].label); });
+
+    function drawBackground(){
+      const gradient = ctx.createLinearGradient(0,0,0,canvas.height);
+      gradient.addColorStop(0, settings.highContrast ? '#000000' : '#233c66');
+      gradient.addColorStop(1, settings.highContrast ? '#1d2330' : '#0f1d2e');
+      ctx.fillStyle = gradient; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      for (let i = 0; i < 12; i++) {
+        const x = (i * 80 + time * 20) % (canvas.width + 100) - 50; const y = 30 + (i % 4) * 52; ctx.fillRect(x, y, 26, 10);
+      }
+    }
+    function drawRobloxScene(){ const bob = Math.sin(time*1.8)*12; ctx.fillStyle='#4ad66d'; ctx.fillRect(120,330,160,80); ctx.fillStyle='#5ec3ff'; ctx.fillRect(180,260,40,80); ctx.fillStyle='#ffdd00'; ctx.fillRect(220,210,30,30); ctx.fillStyle='#ffffff'; ctx.fillRect(300,280+bob,26,26); ctx.fillStyle='#7f6af8'; ctx.fillRect(360,320,120,90); ctx.fillStyle='#ffd166'; ctx.fillRect(420,250,32,32); ctx.fillStyle='#f7f7f7'; ctx.fillRect(610,265+bob*0.5,26,26); ctx.fillStyle='#5ab5ff'; ctx.fillRect(675,300,120,100); ctx.fillStyle='#262b33'; ctx.fillRect(690,250,90,50); }
+    function drawFortniteScene(){ ctx.fillStyle='#6ee7b7'; ctx.fillRect(80,260,220,90); ctx.fillStyle='#ffb703'; ctx.fillRect(180,180,120,80); ctx.fillStyle='#d9f99d'; ctx.fillRect(370,220,160,130); ctx.fillStyle='#f3f4f6'; ctx.fillRect(560,230,180,90); ctx.fillStyle='#5cc8ff'; ctx.fillRect(680,200,140,120); const shieldX = 230 + Math.sin(time*2.3)*30; ctx.fillStyle='#5cc8ff'; ctx.fillRect(shieldX,170,60,100); ctx.fillStyle='#ffffff'; ctx.fillRect(shieldX+12,190,36,50); }
+    function drawRocketLeagueScene(){ const carX = 220 + Math.sin(time*2.3)*90; const ballX = 620 + Math.sin(time*2.8)*140; const ballY = 215 + Math.sin(time*2.1)*30; ctx.fillStyle='#00c4b5'; ctx.fillRect(80,260,760,120); ctx.strokeStyle='#ffffff'; ctx.lineWidth=4; ctx.strokeRect(120,150,700,220); ctx.fillStyle='#ff6666'; ctx.beginPath(); ctx.arc(ballX,ballY,18,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#1e90ff'; ctx.fillRect(carX,255,140,60); ctx.fillStyle='#dfe9ff'; ctx.fillRect(carX+22,240,42,20); ctx.fillRect(carX+78,240,42,20); ctx.fillStyle='#ffffff'; ctx.fillRect(carX+54,285,32,14); }
+    function drawMovieScene(){ ctx.fillStyle='#a855f7'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle='#fbbf24'; ctx.beginPath(); ctx.arc(220,140,52,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#ffffff'; ctx.fillRect(320,180,300,140); ctx.fillStyle='#0f172a'; ctx.fillRect(340,204,260,90); ctx.fillStyle='#8b5cf6'; ctx.fillRect(160,300,620,80); ctx.fillStyle='#f9fafb'; ctx.font='bold 24px Arial'; ctx.fillText('CINEMATIC MODE', 420, 90); }
+    function render(){
+      drawBackground();
+      if (currentMode === 'roblox') drawRobloxScene();
+      else if (currentMode === 'fortnite') drawFortniteScene();
+      else if (currentMode === 'rocketleague') drawRocketLeagueScene();
+      else drawMovieScene();
+      if (settings.highContrast){ ctx.strokeStyle='#ffffff'; ctx.lineWidth=2; ctx.strokeRect(0,0,canvas.width,canvas.height); }
+    }
+    function animate(timestamp){
+      const delta = timestamp - lastFrame; lastFrame = timestamp; time += delta * 0.001;
+      if (!settings.reduceMotion){ orbX = (orbX + 0.6) % (canvas.width + 100); orbY = canvas.height * 0.5 + Math.sin(time * 1.5) * 40; }
+      render();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.arc(orbX, orbY, 12, 0, Math.PI * 2); ctx.fill();
+      requestAnimationFrame(animate);
+    }
+    applyMode(currentMode); requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
